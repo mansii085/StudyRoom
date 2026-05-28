@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "./styles/tokens.css";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  background: transparent;
+  color: var(--sr-fg-1);
+  font-family: var(--sr-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: transparent;
+  color: var(--sr-fg-1);
+  font-family: var(--sr-font-sans);
+  font-size: var(--sr-text-base);
+  line-height: var(--sr-leading-normal);
+  overflow-x: hidden;
+}
+
+input, textarea, button, select {
+  font-family: var(--sr-font-sans);
+}
+
+/* Hide scrollbars for cleaner look */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+input:focus, textarea:focus {
+  border-color: var(--sr-accent) !important;
+  box-shadow: 0 0 10px var(--sr-accent-glow) !important;
+  outline: none;
+}
+
+.sr-nav-link {
+  padding: 6px 12px;
+  border-radius: var(--sr-radius-md);
+  transition: all var(--sr-duration-fast) var(--sr-ease-out);
+}
+.sr-nav-link:hover {
+  background: rgba(129, 140, 248, 0.08);
+  box-shadow: 0 0 10px var(--sr-accent-glow);
+}
+
+button {
+  transition: all var(--sr-duration-fast) var(--sr-ease-out);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dynamic Background Elements */
+.dynamic-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--sr-bg);
+}
+
+.dynamic-bg-grain {
+  position: absolute;
+  inset: -100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dynamic-bg-blob {
+  position: absolute;
+  filter: blur(90px);
+  opacity: 0.6;
+  border-radius: 50%;
+  animation: float-blob 20s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+/* Dark Theme Blobs */
+[data-theme="dark"] .dynamic-bg-blob.blob-1 {
+  background: rgba(99, 102, 241, 0.35); /* Indigo */
+  width: 65vw; height: 65vw;
+  top: -15vw; left: -10vw;
+  animation-delay: 0s;
+}
+
+[data-theme="dark"] .dynamic-bg-blob.blob-2 {
+  background: rgba(16, 185, 129, 0.25); /* Emerald */
+  width: 55vw; height: 55vw;
+  bottom: -10vw; right: -5vw;
+  animation-delay: -5s;
+}
+
+[data-theme="dark"] .dynamic-bg-blob.blob-3 {
+  background: rgba(168, 85, 247, 0.25); /* Purple */
+  width: 50vw; height: 50vw;
+  top: 20%; right: -15vw;
+  animation-delay: -10s;
+}
+
+[data-theme="dark"] .dynamic-bg-blob.blob-4 {
+  background: rgba(236, 72, 153, 0.15); /* Pink */
+  width: 60vw; height: 60vw;
+  bottom: -20vw; left: -10vw;
+  animation-delay: -15s;
+}
+
+/* Light Theme Blobs */
+[data-theme="light"] .dynamic-bg-blob.blob-1 {
+  background: rgba(99, 102, 241, 0.25);
+  width: 65vw; height: 65vw;
+  top: -15vw; left: -10vw;
+  animation-delay: 0s;
+}
+
+[data-theme="light"] .dynamic-bg-blob.blob-2 {
+  background: rgba(16, 185, 129, 0.2);
+  width: 55vw; height: 55vw;
+  bottom: -10vw; right: -5vw;
+  animation-delay: -5s;
+}
+
+[data-theme="light"] .dynamic-bg-blob.blob-3 {
+  background: rgba(168, 85, 247, 0.15);
+  width: 50vw; height: 50vw;
+  top: 20%; right: -15vw;
+  animation-delay: -10s;
+}
+
+[data-theme="light"] .dynamic-bg-blob.blob-4 {
+  background: rgba(236, 72, 153, 0.15);
+  width: 60vw; height: 60vw;
+  bottom: -20vw; left: -10vw;
+  animation-delay: -15s;
+}
+
+@keyframes float-blob {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33% { transform: translate(8%, 12%) scale(1.15) rotate(10deg); }
+  66% { transform: translate(-8%, 8%) scale(0.85) rotate(-5deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+
+@media (max-width: 768px) {
+  :root { --sr-text-timer: 72px; }
+}
+
+/* Gradient Text Utility */
+.sr-text-gradient {
+  background: linear-gradient(135deg, var(--sr-accent) 0%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="light"] .sr-text-gradient {
+  background: linear-gradient(135deg, var(--sr-accent) 0%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Graphical Geometric Shapes */
+.dynamic-bg-shape {
+  position: absolute;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.shape-square {
+  width: 15vw; height: 15vw;
+  top: 10%; left: 15%;
+  animation: float-shape 25s infinite linear;
+  border-radius: var(--sr-radius-2xl);
+}
+
+.shape-circle {
+  width: 20vw; height: 20vw;
+  bottom: 15%; right: 10%;
+  animation: float-shape 35s infinite linear reverse;
+  border-radius: 50%;
+}
+
+.shape-pill {
+  width: 8vw; height: 25vw;
+  top: 40%; left: 80%;
+  animation: float-shape 30s infinite linear;
+  border-radius: 100px;
+}
+
+@keyframes float-shape {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-40px) rotate(180deg); }
+  100% { transform: translateY(0) rotate(360deg); }
+}
+
+/* Network UI Components */
+.sr-network-input {
+  background: rgba(10, 10, 15, 0.4) !important;
+  border: 1px solid rgba(99, 102, 241, 0.4) !important;
+  border-radius: 10px 0 0 10px !important;
+  transition: all var(--sr-duration-fast) ease-out;
+}
+.sr-network-input::placeholder {
+  color: var(--sr-fg-2) !important;
+}
+.sr-network-input:focus {
+  border-color: var(--sr-accent) !important;
+  box-shadow: 0 0 10px var(--sr-accent-glow) !important;
+}
+
+.sr-network-button {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border: 1px solid rgba(99, 102, 241, 0.5) !important;
+  color: #fff !important;
+  transition: all 0.2s ease-out !important;
+  position: relative;
+  overflow: hidden;
+}
+.sr-network-button:hover {
+  background: rgba(129, 140, 248, 0.15) !important;
+  border-color: var(--sr-accent) !important;
+  box-shadow: 0 0 10px var(--sr-accent-glow) !important;
+}
