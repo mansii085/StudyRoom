@@ -69,7 +69,7 @@ export default function Lobby() {
       return;
     }
 
-    if (room.type === 'invite') {
+    if (room.type === 'invite' && room.created_by !== user.id) {
       toast({
         variant: 'error',
         title: 'Invite-only room',
