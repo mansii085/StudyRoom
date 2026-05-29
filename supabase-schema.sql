@@ -219,3 +219,17 @@ BEGIN
       FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
   END IF;
 END $$;
+
+-- 7b. FK from messages → profiles (enables PostgREST embedded selects)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'messages_user_id_fkey_profiles'
+      AND table_name = 'messages'
+  ) THEN
+    ALTER TABLE messages
+      ADD CONSTRAINT messages_user_id_fkey_profiles
+      FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;

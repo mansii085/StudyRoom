@@ -74,7 +74,7 @@ export function Chat({ roomId }: ChatProps) {
     const load = async () => {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, user_id, content, created_at, profiles(display_name)')
+        .select('id, user_id, content, created_at')
         .eq('room_id', roomId)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -84,9 +84,25 @@ export function Chat({ roomId }: ChatProps) {
         return;
       }
 
-      const msgs: Message[] = (data || []).reverse().map((m: any) => {
-        const name = m.profiles?.display_name || 'Unknown';
-        profileCache.current.set(m.user_id, name);
+      const reversed = (data || []).reverse();
+
+      // Batch-fetch all unique user profiles
+      const uniqueUserIds = [...new Set(reversed.map((m: any) => m.user_id))];
+      const uncachedIds = uniqueUserIds.filter(uid => !profileCache.current.has(uid));
+      if (uncachedIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', uncachedIds);
+        if (profiles) {
+          for (const p of profiles) {
+            profileCache.current.set(p.id, p.display_name);
+          }
+        }
+      }
+
+      const msgs: Message[] = reversed.map((m: any) => {
+        const name = profileCache.current.get(m.user_id) || 'Unknown';
         return { id: m.id, user_id: m.user_id, content: m.content, created_at: m.created_at, display_name: name };
       });
       if (msgs.length) latestAt.current = msgs[msgs.length - 1].created_at;
@@ -150,16 +166,33 @@ export function Chat({ roomId }: ChatProps) {
       if (!latestAt.current) return;
       const { data } = await supabase
         .from('messages')
-        .select('id, user_id, content, created_at, profiles(display_name)')
+        .select('id, user_id, content, created_at')
         .eq('room_id', roomId)
         .gt('created_at', latestAt.current)
         .order('created_at', { ascending: true })
         .limit(20);
 
       if (!data?.length) return;
+
+      // Resolve any unknown display names
+      const unknownIds = data
+        .filter((m: any) => !profileCache.current.has(m.user_id))
+        .map((m: any) => m.user_id);
+      const uniqueUnknown = [...new Set(unknownIds)];
+      if (uniqueUnknown.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', uniqueUnknown);
+        if (profiles) {
+          for (const p of profiles) {
+            profileCache.current.set(p.id, p.display_name);
+          }
+        }
+      }
+
       const msgs: Message[] = data.map((m: any) => {
-        const name = m.profiles?.display_name || profileCache.current.get(m.user_id) || 'Unknown';
-        profileCache.current.set(m.user_id, name);
+        const name = profileCache.current.get(m.user_id) || 'Unknown';
         return { id: m.id, user_id: m.user_id, content: m.content, created_at: m.created_at, display_name: name };
       });
       addMessages(msgs);
