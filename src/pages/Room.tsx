@@ -79,7 +79,7 @@ export default function Room() {
 
       // Auto-join open rooms for non-members who arrive via a shared link
         if (!memberRes.data) {
-          if (roomRes.data.type === 'open') {
+          if (roomRes.data.type === 'open' || roomRes.data.created_by === user.id) {
             const role = roomRes.data.created_by === user.id ? 'admin' : 'member';
             const { error: joinErr } = await supabase.from('room_members').insert({
               room_id: roomId,
