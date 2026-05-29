@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/context/AuthContext';
 
@@ -10,17 +10,27 @@ interface RouteGuardProps {
 export function RouteGuard({ children, requireAuth = true }: RouteGuardProps) {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
+
+  // If auth loading takes longer than 8s, force through
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  const isLoading = loading && !timedOut;
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
     if (requireAuth && !user) {
       setLocation('/login');
     } else if (!requireAuth && user) {
       setLocation('/');
     }
-  }, [user, loading, requireAuth, setLocation]);
+  }, [user, isLoading, requireAuth, setLocation]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{
         minHeight: '100vh',

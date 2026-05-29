@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -22,8 +22,7 @@ export default function Join() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [error, setError] = useState('');
-  // Guard against React strict-mode double invocation
-  const ranRef = useRef(false);
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -41,46 +40,72 @@ export default function Join() {
       return;
     }
 
-    if (ranRef.current) return;
-    ranRef.current = true;
+    // Prevent double-run
+    if (joining) return;
+    setJoining(true);
 
-    (async () => {
-      const { data: room, error: roomErr } = await supabase
-        .from('rooms')
-        .select('id, created_by, name')
-        .eq('invite_code', inviteCode)
-        .maybeSingle();
+    let cancelled = false;
+
+    const doJoin = async () => {
+      try {
+         // 1. Look up the room by invite code
+        const { data: room, error: roomErr } = await supabase
+          .from('rooms')
+          .select('id, created_by, name')
+          .eq('invite_code', inviteCode)
+          .maybeSingle();
+
+      if (cancelled) return;
 
       if (roomErr || !room) {
-        setError("That invite link doesn't match any room. It may have been deleted or revoked.");
-        return;
-      }
-
-      // Add membership if not already a member
-      const { data: existing } = await supabase
-        .from('room_members')
-        .select('id')
-        .eq('room_id', room.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!existing) {
-        const role = room.created_by === user.id ? 'admin' : 'member';
-        const { error: joinErr } = await supabase.from('room_members').insert({
-          room_id: room.id,
-          user_id: user.id,
-          role,
-        });
-        if (joinErr && !joinErr.message.toLowerCase().includes('duplicate')) {
-          setError(joinErr.message);
+          setError("That invite link doesn't match any room. It may have been deleted or revoked.");
           return;
         }
-        toast({ variant: 'success', title: `Joined "${room.name}"` });
-      }
+        
+        // 2. Add membership if not already a member
+        const { data: existing } = await supabase
+          .from('room_members')
+          .select('id')
+          .eq('room_id', room.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      setLocation(`/rooms/${room.id}`);
-    })();
-  }, [code, user, authLoading, setLocation, toast]);
+        if (cancelled) return;
+
+        if (!existing) {
+          const role = room.created_by === user.id ? 'admin' : 'member';
+          const { error: joinErr } = await supabase.from('room_members').insert({
+            room_id: room.id,
+            user_id: user.id,
+            role,
+          });
+          if (cancelled) return;
+          if (joinErr && !joinErr.message.toLowerCase().includes('duplicate')) {
+            setError(joinErr.message);
+            return;
+          }
+          toast({ variant: 'success', title: `Joined "${room.name}"` });
+        }
+
+        // 3. Redirect to the room
+        if (!cancelled) {
+          setLocation(`/rooms/${room.id}`);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err?.message || 'Something went wrong. Please try again.');
+        }
+      }
+    };
+
+    doJoin();
+
+    return () => {
+      cancelled = true;
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   return (
     <div style={{

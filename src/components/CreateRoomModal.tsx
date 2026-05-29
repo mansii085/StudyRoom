@@ -28,7 +28,7 @@ export function CreateRoomModal({ onClose, onCreated }: CreateRoomModalProps) {
     if (!user || !canCreate) return;
     setLoading(true);
     try {
-      const inviteCode = type === 'invite' ? generateInviteCode() : null;
+      const inviteCode = generateInviteCode();
       const { data: room, error } = await supabase
         .from('rooms')
         .insert({

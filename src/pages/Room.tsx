@@ -64,44 +64,67 @@ export default function Room() {
   useEffect(() => {
     const load = async () => {
       if (!roomId || !user) return;
-      const [roomRes, memberRes] = await Promise.all([
-        supabase.from('rooms').select('*').eq('id', roomId).single(),
-        supabase.from('room_members').select('role').eq('room_id', roomId).eq('user_id', user.id).maybeSingle(),
-      ]);
+      try {
+        const [roomRes, memberRes] = await Promise.all([
+          supabase.from('rooms').select('*').eq('id', roomId).single(),
+          supabase.from('room_members').select('role').eq('room_id', roomId).eq('user_id', user.id).maybeSingle(),
+        ]);
 
       if (roomRes.error || !roomRes.data) {
-        toast({ variant: 'error', title: 'Room not found' });
-        sessionStorage.removeItem(SESSION_ROOM_KEY);
-        setLocation('/');
-        return;
-      }
+          toast({ variant: 'error', title: 'Room not found' });
+          sessionStorage.removeItem(SESSION_ROOM_KEY);
+          setLocation('/');
+          return;
+        }
 
-      if (!memberRes.data) {
-        toast({ variant: 'error', title: 'You are not a member of this room' });
-        sessionStorage.removeItem(SESSION_ROOM_KEY);
-        setLocation('/');
-        return;
-      }
+      // Auto-join open rooms for non-members who arrive via a shared link
+        if (!memberRes.data) {
+          if (roomRes.data.type === 'open') {
+            const role = roomRes.data.created_by === user.id ? 'admin' : 'member';
+            const { error: joinErr } = await supabase.from('room_members').insert({
+              room_id: roomId,
+              user_id: user.id,
+              role,
+            });
+            if (joinErr && !joinErr.message.toLowerCase().includes('duplicate')) {
+              toast({ variant: 'error', title: 'Could not join room', body: joinErr.message });
+              sessionStorage.removeItem(SESSION_ROOM_KEY);
+              setLocation('/');
+              return;
+            }
+            toast({ variant: 'success', title: `Joined "${roomRes.data.name}"` });
+          } else {
+            toast({ variant: 'error', title: 'Invite-only room', body: 'Ask the host for an invite link to join.' });
 
+              sessionStorage.removeItem(SESSION_ROOM_KEY);
+              setLocation('/');
+              return;
+            }
+      }
       setRoom(roomRes.data);
-      const adminByRole = memberRes.data.role === 'admin';
-      const adminByOwnership = roomRes.data.created_by === user.id;
-      setIsAdmin(adminByRole || adminByOwnership);
+        const memberRole = memberRes.data?.role;
+        const adminByRole = memberRole === 'admin';
+        const adminByOwnership = roomRes.data.created_by === user.id;
+        setIsAdmin(adminByRole || adminByOwnership);
 
       // Re-promote creator if their role somehow drifted
-      if (adminByOwnership && !adminByRole) {
-        supabase.from('room_members')
-          .update({ role: 'admin' })
-          .eq('room_id', roomId)
-          .eq('user_id', user.id)
-          .then(() => {});
-      }
+        if (adminByOwnership && !adminByRole) {
+          supabase.from('room_members')
+            .update({ role: 'admin' })
+            .eq('room_id', roomId)
+            .eq('user_id', user.id)
+            .then(() => {});
+        }
 
-      setLoading(false);
+        setLoading(false);
 
       const { data: hostProfile } = await supabase
-        .from('profiles').select('display_name').eq('id', roomRes.data.created_by).single();
-      if (hostProfile) setHostName(hostProfile.display_name);
+          .from('profiles').select('display_name').eq('id', roomRes.data.created_by).single();
+        if (hostProfile) setHostName(hostProfile.display_name);
+      } catch (err: any) {
+        toast({ variant: 'error', title: 'Failed to load room', body: err?.message || 'Unknown error' });
+        setLoading(false);
+      }
     };
     load();
   }, [roomId, user, toast, setLocation]);
@@ -274,17 +297,15 @@ export default function Room() {
     toast({ variant: 'success', title: `${name} was removed from the room` });
   };
 
-  // Copy invite link for invite-only rooms, or room URL for open rooms
+// Copy invite link — always uses /join/ route so it works for non-members and non-logged-in users  const copyLink = () => {
   const copyLink = () => {
     if (!room) return;
-    const text = room.invite_code
-      ? `${window.location.origin}/join/${room.invite_code}`
-      : `${window.location.origin}/rooms/${room.id}`;
+    const text = `${window.location.origin}/join/${room.invite_code}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     toast({
       variant: 'success',
-      title: room.invite_code ? 'Invite link copied' : 'Room link copied',
+      title: 'Invite link copied',
       body: 'Share it with anyone you want to study with.',
     });
     setTimeout(() => setCopied(false), 2000);
@@ -315,10 +336,12 @@ export default function Room() {
           zIndex: 'var(--sr-z-sticky)' as any,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {room?.invite_code && (
+            {room && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LinkIcon size={12} style={{ color: 'var(--sr-fg-3)' }} />
-                <span className="sr-eyebrow" style={{ fontSize: 11, color: 'var(--sr-fg-2)' }}>Invite link</span>
+                <span className="sr-eyebrow" style={{ fontSize: 11, color: 'var(--sr-fg-2)' }}>
+                  Invite link
+                </span>
                 <code style={{
                   fontFamily: 'var(--sr-font-mono)', fontSize: 13,
                   color: 'var(--sr-fg-1)',
@@ -345,7 +368,7 @@ export default function Room() {
               }}
             >
               {copied ? <Check size={11} style={{ color: 'var(--sr-success)' }} /> : <Copy size={11} />}
-              {copied ? 'Copied!' : (room?.invite_code ? 'Copy invite link' : 'Copy link')}
+              {copied ? 'Copied!' : 'Copy invite link'}
             </button>
 
             {isAdmin && (
