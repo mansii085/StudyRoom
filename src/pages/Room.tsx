@@ -340,16 +340,28 @@ export default function Room() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LinkIcon size={12} style={{ color: 'var(--sr-fg-3)' }} />
                 <span className="sr-eyebrow" style={{ fontSize: 11, color: 'var(--sr-fg-2)' }}>
-                  Invite link
+                  Invite Link
                 </span>
                 <code style={{
                   fontFamily: 'var(--sr-font-mono)', fontSize: 13,
                   color: 'var(--sr-fg-1)',
                   background: 'var(--sr-surface-sunken)',
                   padding: '2px 8px', borderRadius: 'var(--sr-radius-sm)',
-                  maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {`${window.location.origin}/join/${room.invite_code}`}
+                </code>
+                
+                <span className="sr-eyebrow" style={{ fontSize: 11, color: 'var(--sr-fg-2)', marginLeft: 8 }}>
+                  Code
+                </span>
+                <code style={{
+                  fontFamily: 'var(--sr-font-mono)', fontSize: 13,
+                  color: 'var(--sr-fg-1)',
+                  background: 'var(--sr-surface-sunken)',
+                  padding: '2px 8px', borderRadius: 'var(--sr-radius-sm)',
+                }}>
+                  {room.invite_code}
                 </code>
               </div>
             )}
